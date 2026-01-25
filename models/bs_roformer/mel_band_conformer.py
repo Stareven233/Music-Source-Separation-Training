@@ -202,7 +202,7 @@ class Transformer(Module):
                     dim_head=dim_head,
                     heads=heads,
                     dropout=attn_dropout,
-                    flash=flash_attn,
+                    flash=flash_attn
                 )
             else:
                 attn = Attention(
@@ -211,7 +211,7 @@ class Transformer(Module):
                     heads=heads,
                     dropout=attn_dropout,
                     rotary_embed=rotary_embed,
-                    flash=flash_attn,
+                    flash=flash_attn
                 )
 
             self.layers.append(ModuleList([
