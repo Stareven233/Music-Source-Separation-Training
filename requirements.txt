@@ -29,7 +29,8 @@ wandb
 accelerate
 huggingface-hub>=0.23.0
 prodigyopt
-torch_log_wmse
+torch_log_wmse>=0.3.1
+torch_l1_snr>=0.1.1
 loralib
 pyaudio
 wxpython==4.2.2
