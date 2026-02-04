@@ -17,6 +17,14 @@ from rotary_embedding_torch import RotaryEmbedding
 from einops import rearrange, pack, unpack
 from einops.layers.torch import Rearrange
 
+try:
+    from PoPE_pytorch import PoPE, flash_attn_with_pope
+    _HAS_POPE = True
+except Exception:
+    PoPE = None
+    flash_attn_with_pope = None
+    _HAS_POPE = False
+
 # helper functions
 
 def exists(val):
@@ -84,6 +92,7 @@ class Attention(Module):
             dropout=0.,
             rotary_embed=None,
             flash=True,
+            pope_embed=None
     ):
         super().__init__()
         self.heads = heads
@@ -91,6 +100,9 @@ class Attention(Module):
         dim_inner = heads * dim_head
 
         self.rotary_embed = rotary_embed
+        self.pope_embed = pope_embed
+        assert not (self.rotary_embed is not None and self.pope_embed is not None), \
+            "cannot have both rotary and pope embeddings"
 
         self.attend = Attend(flash=flash, dropout=dropout)
 
@@ -109,11 +121,19 @@ class Attention(Module):
 
         q, k, v = rearrange(self.to_qkv(x), 'b n (qkv h d) -> qkv b h n d', qkv=3, h=self.heads)
 
-        if exists(self.rotary_embed):
+        if exists(self.pope_embed):
+            assert _HAS_POPE, "PoPE requested but PoPE_pytorch is not installed"
+            out = flash_attn_with_pope(
+                q, k, v,
+                pos_emb=self.pope_embed(q.shape[-2]),
+                softmax_scale=self.scale
+            )
+        elif exists(self.rotary_embed):
             q = self.rotary_embed.rotate_queries_or_keys(q)
             k = self.rotary_embed.rotate_queries_or_keys(k)
-
-        out = self.attend(q, k, v)
+            out = self.attend(q, k, v)
+        else:
+            out = self.attend(q, k, v)
 
         gates = self.to_gates(x)
         out = out * rearrange(gates, 'b n h -> b h n 1').sigmoid()
@@ -189,6 +209,7 @@ class Transformer(Module):
             ff_mult=4,
             norm_output=True,
             rotary_embed=None,
+            pope_embed=None,
             flash_attn=True,
             linear_attn=False,
     ):
@@ -211,6 +232,7 @@ class Transformer(Module):
                     heads=heads,
                     dropout=attn_dropout,
                     rotary_embed=rotary_embed,
+                    pope_embed=pope_embed,
                     flash=flash_attn
                 )
 
@@ -374,6 +396,7 @@ class BSRoformer(Module):
             mlp_expansion_factor=4,
             use_torch_checkpoint=False,
             skip_connection=False,
+            use_pope: bool = False,
     ):
         super().__init__()
 
@@ -395,18 +418,35 @@ class BSRoformer(Module):
             norm_output=False,
         )
 
-        time_rotary_embed = RotaryEmbedding(dim=dim_head)
-        freq_rotary_embed = RotaryEmbedding(dim=dim_head)
+        if use_pope:
+            time_pope_embed = PoPE(dim=dim_head, heads=heads)
+            freq_pope_embed = PoPE(dim=dim_head, heads=heads)
+            time_rotary_embed = None
+            freq_rotary_embed = None
+        else:
+            time_rotary_embed = RotaryEmbedding(dim = dim_head)
+            freq_rotary_embed = RotaryEmbedding(dim = dim_head)
+            time_pope_embed = freq_pope_embed = None
 
         for _ in range(depth):
             tran_modules = []
             if linear_transformer_depth > 0:
                 tran_modules.append(Transformer(depth=linear_transformer_depth, linear_attn=True, **transformer_kwargs))
             tran_modules.append(
-                Transformer(depth=time_transformer_depth, rotary_embed=time_rotary_embed, **transformer_kwargs)
+                Transformer(
+                    depth=time_transformer_depth,
+                    rotary_embed=time_rotary_embed,
+                    pope_embed=time_pope_embed,
+                    **transformer_kwargs
+                )
             )
             tran_modules.append(
-                Transformer(depth=freq_transformer_depth, rotary_embed=freq_rotary_embed, **transformer_kwargs)
+                Transformer(
+                    depth=freq_transformer_depth,
+                    rotary_embed=freq_rotary_embed,
+                    pope_embed=freq_pope_embed,
+                    **transformer_kwargs
+                )
             )
             self.layers.append(nn.ModuleList(tran_modules))
 

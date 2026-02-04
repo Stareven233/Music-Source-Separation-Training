@@ -97,22 +97,45 @@ def prepare_data(config: Union[ConfigDict, OmegaConf], args: argparse.Namespace,
     return train_loader
 
 
-def load_chunk(path, length, chunk_size, offset=None):
-    if chunk_size <= length:
+def load_chunk(path, length, chunk_size, offset=None, target_channels = 2):
+    """
+    Returns array with shape (target_channels, chunk_size)
+    """
+
+    if  chunk_size <= length:
         if offset is None:
-            offset = np.random.randint(length - chunk_size + 1)
-        x = sf.read(path, dtype='float32', start=offset, frames=chunk_size)[0]
-    else:
-        x = sf.read(path, dtype='float32')[0]
-        if len(x.shape) == 1:
-            # Mono case
-            pad = np.zeros((chunk_size - length))
+            start = np.random.randint(length - chunk_size + 1)
         else:
-            pad = np.zeros([chunk_size - length, x.shape[-1]])
+            start = offset
+        x = sf.read(path, dtype='float32', start=start, frames=chunk_size)[0]
+    else:
+        if offset is None:
+            start = 0
+        else:
+            start = offset
+        frames_to_read = length
+        x = sf.read(path, dtype='float32', start=start, frames=frames_to_read)[0]
+
+    if x.ndim == 1:
+        x = x[:, None]
+
+    if x.shape[0] < chunk_size:
+        pad = np.zeros((chunk_size - x.shape[0], x.shape[1]), dtype=np.float32)
         x = np.concatenate([x, pad], axis=0)
-    # Mono fix
-    if len(x.shape) == 1:
-        x = np.expand_dims(x, axis=1)
+    elif x.shape[0] > chunk_size:
+        x = x[:chunk_size]
+
+
+    ch = x.shape[1]
+    if ch == target_channels:
+        pass
+    elif ch > target_channels:
+        x = x[:, :target_channels]
+    elif ch == 1:
+        x = np.repeat(x, 2, axis=1)
+    else:
+        raise ValueError(f"Path: {path}, num_channels: {ch}")
+
     return x.T
 
 
