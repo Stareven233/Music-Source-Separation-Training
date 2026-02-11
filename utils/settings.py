@@ -202,7 +202,7 @@ def parse_args_inference(dict_args: Union[Dict, None]) -> argparse.Namespace:
                              " scnet, scnet_unofficial, segm_models, swin_upernet, torchseg")
     parser.add_argument("--config_path", type=str, help="path to config file")
     parser.add_argument("--start_check_point", type=str, default='', help="Initial checkpoint to valid weights")
-    parser.add_argument("--input_folder", type=str, help="folder with mixtures to process")
+    parser.add_argument("-i", "--input_path", type=str, nargs='+', required=True, help="path / folder to the mixtures(input audio files)")
     parser.add_argument("--store_dir", type=str, default="", help="path to store results as wav file")
     parser.add_argument("--draw_spectro", type=float, default=0,
                         help="Code will generate spectrograms for resulted stems."

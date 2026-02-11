@@ -6,6 +6,8 @@ import librosa
 import sys
 import os
 import glob
+from pathlib import Path
+
 import torch
 import soundfile as sf
 import numpy as np
@@ -26,7 +28,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def run_folder(
+def run(
     model: "torch.nn.Module",
     args: "argparse.Namespace",
     config: dict,
@@ -54,10 +56,14 @@ def run_folder(
     model.eval()
 
     # Recursively collect all files from input directory
-    mixture_paths = sorted(
-        glob.glob(os.path.join(args.input_folder, "**/*.*"), recursive=True)
-    )
-    mixture_paths = [p for p in mixture_paths if os.path.isfile(p)]
+    mixture_paths = []
+    for i in args.input_path:
+        i = Path(i)
+        if not i.is_dir():
+            mixture_paths.append(i)
+            continue
+        mixture_paths.extend(f.resolve().as_posix() for f in i.rglob("*") if f.is_file())
+    mixture_paths.sort()
 
     sample_rate: int = getattr(config.audio, "sample_rate", 44100)
 
@@ -78,9 +84,8 @@ def run_folder(
 
     for path in mixture_paths:
         # Get relative path from input folder
-        relative_path: str = os.path.relpath(path, args.input_folder)
         # Extract directory and file name
-        dir_name: str = os.path.dirname(relative_path)
+        dir_name: str = os.path.basename(os.path.dirname(path))
         file_name: str = os.path.splitext(os.path.basename(path))[0]
 
         try:
@@ -222,7 +227,7 @@ def proc_folder(dict_args):
 
     print("Model load time: {:.2f} sec".format(time.time() - model_load_start_time))
 
-    run_folder(model, args, config, device, verbose=True)
+    run(model, args, config, device, verbose=True)
 
 
 if __name__ == "__main__":

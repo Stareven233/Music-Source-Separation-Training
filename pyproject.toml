@@ -1,0 +1,10 @@
+[project]
+name = "music-source-separation-training"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "librosa>=0.11.0",
+    "tokenizers>=0.22.2",
+]

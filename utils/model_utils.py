@@ -160,12 +160,10 @@ def demix(
     else:
         instruments = prefer_target_instrument(config)
 
-    ret_data = {k: v for k, v in zip(instruments, estimated_sources)}
-
     if mode == "demucs" and num_instruments <= 1:
         return estimated_sources
     else:
-        return ret_data
+        return {k: v for k, v in zip(instruments, estimated_sources)}
 
 
 def initialize_model_and_device(model: torch.nn.Module, device_ids: List[int]) ->\
