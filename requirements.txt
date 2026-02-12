@@ -32,8 +32,13 @@ torch_log_wmse~=0.3.1
 torch_l1_snr~=0.1.2
 loralib
 pyaudio
-wxpython~=4.2.2
 keyboard
 matplotlib
 hyper_connections~=0.1.11
 sageattention~=1.0.6
+
+# used in training
+# wandb
+
+# just for GUI
+# wxpython~=4.2.2
