@@ -35,11 +35,11 @@ def build_relative_weight_path(weight_path: Path, output_yaml_path: Path) -> str
 
 
 def parse_args() -> argparse.Namespace:
-  parser = argparse.ArgumentParser(description='Inject _leaf_meta into a YAML config and save as a new YAML file.')
-  parser.add_argument('--model_type', required=True, help='Model type metadata.')
-  parser.add_argument('--model_checkpoint', required=True, type=Path, help='Path to model weight file.')
+  parser = argparse.ArgumentParser(description='Inject _model_info into a YAML config and save as a new YAML file.')
+  parser.add_argument('--model-type', required=True, help='Model type metadata.')
+  parser.add_argument('--model-checkpoint', required=True, type=Path, help='Path to model weight file.')
   parser.add_argument('--source-path', required=True, type=Path, help='Path to source YAML config file.')
-  parser.add_argument('--output-dir', required=True, type=Path, help='Directory to save the new YAML file.')
+  parser.add_argument('--output-dir', default=None, type=Path, help='Directory to save the new YAML file.')
   parser.add_argument(
     '--output-name',
     default=None,
@@ -52,10 +52,14 @@ def main() -> None:
   args = parse_args()
 
   # expanduser() 把用户目录写法（~/xx/x）展开成真实绝对路径前缀
-  source_path = args.source_path.expanduser().resolve()
+  source_path: Path = args.source_path.expanduser().resolve()
   model_checkpoint = args.model_checkpoint.expanduser().resolve()
-  output_dir = args.output_dir.expanduser().resolve()
-  output_dir.mkdir(parents=True, exist_ok=True)
+  if args.output_dir is None:
+    # 不指定就覆盖源文件
+    output_dir = source_path.parent
+  else:
+    output_dir = args.output_dir.expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
 
   output_name = args.output_name if args.output_name else source_path.name
   output_filename = Path(output_name).with_suffix('.yaml')
@@ -68,7 +72,7 @@ def main() -> None:
     raise TypeError(f'YAML root must be a mapping, got: {type(yaml_obj)}')
 
   relative_weight_path = build_relative_weight_path(model_checkpoint, output_path)
-  yaml_obj['_leaf_meta'] = {
+  yaml_obj['_model_info'] = {
     'model_type': args.model_type,
     'model_checkpoint': relative_weight_path,
   }

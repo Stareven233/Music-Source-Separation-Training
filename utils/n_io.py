@@ -10,6 +10,8 @@ from ruamel.yaml import YAML
 
 # 用来保留注释
 yaml = YAML()
+# 避免长字符串按空格自动换行（ruamel 默认 width=80）
+yaml.width = 10**9
 
 
 def check_path_exist(func):
@@ -44,9 +46,15 @@ def load_yaml(path, encoding='utf-8') -> dict:
     return yaml.load(f)
 
 
-def write_yaml(path, obj, encoding='utf-8') -> None:
+def write_yaml(path, obj, encoding='utf-8', width: int | None = None) -> None:
+  if width is None:
+    emitter = yaml
+  else:
+    emitter = YAML()
+    emitter.width = width
+
   with open(path, 'w', encoding=encoding) as f:
-    yaml.dump(obj, f)
+    emitter.dump(obj, f)
 
 
 @check_path_exist
