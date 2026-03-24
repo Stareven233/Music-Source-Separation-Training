@@ -4,8 +4,6 @@ __author__ = 'Roman Solovyev (ZFTurbo): https://github.com/ZFTurbo/'
 import time
 import librosa
 import sys
-import os
-import glob
 from pathlib import Path
 
 import torch
@@ -15,13 +13,14 @@ from tqdm.auto import tqdm
 import torch.nn as nn
 
 # Using the embedded version of Python can also correctly import the utils module.
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
+current_dir = Path(__file__).resolve().parent
+sys.path.append(str(current_dir))
 
 from utils.audio_utils import normalize_audio, denormalize_audio, draw_spectrogram
 from utils.settings import get_model_from_config, parse_args_inference
 from utils.model_utils import demix
 from utils.model_utils import prefer_target_instrument, apply_tta, load_start_checkpoint
+from utils.n_io import load_yaml
 
 import warnings
 
@@ -60,17 +59,17 @@ def run(
     for i in args.input_path:
         i = Path(i)
         if not i.is_dir():
-            mixture_paths.append(i)
+            mixture_paths.append(i.resolve())
             continue
-        mixture_paths.extend(f.resolve().as_posix() for f in i.rglob("*") if f.is_file())
-    mixture_paths.sort()
+        mixture_paths.extend(f.resolve() for f in i.rglob("*") if f.is_file())
+    mixture_paths.sort(key=lambda p: p.as_posix())
 
     sample_rate: int = getattr(config.audio, "sample_rate", 44100)
 
     print(f"Total files found: {len(mixture_paths)}. Using sample rate: {sample_rate}")
 
     instruments: list[str] = prefer_target_instrument(config)[:]
-    os.makedirs(args.store_dir, exist_ok=True)
+    Path(args.store_dir).mkdir(parents=True, exist_ok=True)
 
     # Wrap paths with progress bar if not in verbose mode
     if not verbose:
@@ -85,11 +84,12 @@ def run(
     for path in mixture_paths:
         # Get relative path from input folder
         # Extract directory and file name
-        dir_name: str = os.path.basename(os.path.dirname(path))
-        file_name: str = os.path.splitext(os.path.basename(path))[0]
+        path = Path(path)
+        dir_name: str = path.parent.name
+        file_name: str = path.stem
 
         try:
-            mix, sr = librosa.load(path, sr=sample_rate, mono=False)
+            mix, sr = librosa.load(path.as_posix(), sr=sample_rate, mono=False)
         except Exception as e:
             print(f"Cannot read track: {format(path)}")
             print(f"Error message: {str(e)}")
@@ -162,22 +162,20 @@ def run(
                 file_name=file_name,
                 dir_name=dir_name,
                 model_type=args.model_type,
-                model=os.path.splitext(
-                    os.path.basename(args.start_check_point)
-                )[0],
+                model=Path(args.start_check_point).stem,
             )
 
             # Create output directory
-            output_dir: str = os.path.join(args.store_dir, *dirnames)
-            os.makedirs(output_dir, exist_ok=True)
+            output_dir = Path(args.store_dir).joinpath(*dirnames)
+            output_dir.mkdir(parents=True, exist_ok=True)
 
-            output_path: str = os.path.join(output_dir, f"{fname}.{codec}")
-            sf.write(output_path, estimates.T, sr, subtype=subtype)
+            output_path = output_dir / f"{fname}.{codec}"
+            sf.write(str(output_path), estimates.T, sr, subtype=subtype)
 
             # Draw and save spectrogram if enabled
             if args.draw_spectro > 0:
-                output_img_path = os.path.join(output_dir, f"{fname}.jpg")
-                draw_spectrogram(estimates.T, sr, args.draw_spectro, output_img_path)
+                output_img_path = output_dir / f"{fname}.jpg"
+                draw_spectrogram(estimates.T, sr, args.draw_spectro, str(output_img_path))
                 print("Wrote file:", output_img_path)
 
     print(f"Elapsed time: {time.time() - start_time:.2f} seconds.")
@@ -194,8 +192,39 @@ def format_filename(template, **kwargs):
     *dirnames, fname = result.split("/")
     return dirnames, fname
 
+
+def _inject_meta_from_config(args) -> None:
+    """
+    Merge `_leaf_meta` values from config (args.config_path) into args, then remove `_leaf_meta` from config.
+    """
+
+    try:
+        config = load_yaml(args.config_path)
+    except:
+        return
+
+    leaf_meta = config.pop("_leaf_meta", None)
+    if not leaf_meta or not isinstance(leaf_meta, dict):
+        return
+
+    model_type = leaf_meta.get("model_type", "")
+    checkpoint = leaf_meta.get("model_checkpoint", "") or leaf_meta.get("model_weight_path", "")
+
+    if model_type:
+        args.model_type = model_type
+
+    if checkpoint:
+        checkpoint_path = Path(checkpoint).expanduser()
+        if not checkpoint_path.is_absolute() and args.config_path:
+            checkpoint_path = (
+                Path(args.config_path).expanduser().resolve().parent / checkpoint_path
+            ).resolve()
+        args.start_check_point = str(checkpoint_path)
+
+
 def proc_folder(dict_args):
     args = parse_args_inference(dict_args)
+
     device = "cpu"
     if args.force_cpu:
         device = "cpu"
@@ -210,7 +239,9 @@ def proc_folder(dict_args):
     model_load_start_time = time.time()
     torch.backends.cudnn.benchmark = True
 
+    _inject_meta_from_config(args)
     model, config = get_model_from_config(args.model_type, args.config_path)
+
     if 'model_type' in config.training:
         args.model_type = config.training.model_type
     if args.start_check_point:

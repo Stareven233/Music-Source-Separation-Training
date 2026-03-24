@@ -68,7 +68,6 @@ ENV/
 env.bak/
 venv.bak/
 pyvenv.cfg
-Scripts/
 
 *.code-workspace
 
