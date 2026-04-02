@@ -228,12 +228,11 @@ def _build_leaf_module(
 
   index, num = module_index_num
 
-  if index > 0:
-    # 不是第一个模块，且在flow里，说明输入需要从mmap获取
-    arguments.append({
-      'key': 'input_path',
-      'method': 'mmap',
-    })
+  arguments.append({
+    'key': 'input_path',
+    # 在flow里，第一个模块必须有实际输入，后面的模块从mmap获取
+    'method': 'mmap' if index > 0 else 'select',
+  })
 
   arguments.append({
     'key': 'instrument',
