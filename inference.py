@@ -18,7 +18,7 @@ import argparse
 
 # Using the embedded version of Python can also correctly import the utils module.
 current_dir = Path(__file__).resolve().parent
-sys.path.append(str(current_dir))
+sys.path.insert(0, str(current_dir))
 
 from utils.audio_utils import normalize_audio, denormalize_audio, draw_spectrogram
 from utils.settings import get_model_from_config, parse_args_inference

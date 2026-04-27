@@ -94,8 +94,8 @@ def _iter_model_defs(raw_map: dict, source: str) -> list[tuple[str, str, str, st
       missing = _missing_keys(item, ('model_name', 'config_path', 'model_type'))
       if missing:
         _warn(
-          f'[{source}] skip {model_class}/{_norm_text(item.get('model_name') or item.get('name'))}: '
-          f'missing {', '.join(missing)}'
+          f'[{source}] skip {model_class}/{_norm_text(item.get("model_name") or item.get("name"))}: '
+          f'missing {", ".join(missing)}'
         )
         continue
 
@@ -136,7 +136,7 @@ def _collect_official_models(webui_dir: Path) -> dict[str, ModelInfo]:
     if not model_name:
       missing.append('model_name')
     if missing:
-      _warn(f'[official] skip {key_name}: missing {', '.join(missing)}')
+      _warn(f'[official] skip {key_name}: missing {", ".join(missing)}')
       continue
 
     key = _model_key(model_class, model_name)
@@ -263,7 +263,10 @@ def _build_leaf_module(
 
 def _build_leaf_flow(branches: list[dict], leaf_flow_path: Path) -> dict:
   '''Assemble a flow YAML document with all branches, based on previous msst yaml.'''
-  template = load_yaml(leaf_flow_path)
+  try:
+    template = load_yaml(leaf_flow_path)
+  except FileNotFoundError:
+    template = None
   if not isinstance(template, dict):
     _warn(f'[flow] invalid template type={type(template).__name__}: {leaf_flow_path}')
     template = {'name': 'MSST', 'desc': '', 'meta': {'version': '1.0'}}
@@ -317,7 +320,7 @@ def _convert_preset_to_flow(webui_dir: Path, models: dict[str, ModelInfo], targe
       # 因为msst-webui的preset就是这么定义的，混用了model_type表示model_class
       missing = _missing_keys(step, ('model_type', 'model_name', 'input_to_next'))
       if missing:
-        _warn(f'[preset] {preset_file.name}: skip step missing {', '.join(missing)}')
+        _warn(f'[preset] {preset_file.name}: skip step missing {", ".join(missing)}')
         continue
 
       step_model_class = _norm_text(step['model_type'])

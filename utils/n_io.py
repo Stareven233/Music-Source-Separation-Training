@@ -7,7 +7,6 @@ import mmap
 import struct
 from dataclasses import dataclass
 from urllib.parse import quote, unquote
-import uuid
 
 from ruamel.yaml import YAML
 
