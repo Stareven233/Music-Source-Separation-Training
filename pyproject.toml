@@ -3,7 +3,7 @@ name = "unified-svc"
 version = "0.9.4"
 description = "unified env for msst, rift-svc, sov, ddsp-svc"
 readme = "README.md"
-requires-python = "~=3.12"
+requires-python = "~=3.12.0"
 dependencies = [
     "librosa>=0.11.0",
     "pyloudnorm>=0.2.0",
