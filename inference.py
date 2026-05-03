@@ -22,7 +22,7 @@ sys.path.insert(0, str(current_dir))
 
 from utils.audio_utils import normalize_audio, denormalize_audio, draw_spectrogram
 from utils.settings import get_model_from_config, parse_args_inference
-from utils.model_utils import demix
+from utils.model_utils import bigshifts_wrapper
 from utils.model_utils import prefer_target_instrument, apply_tta, load_start_checkpoint
 from utils.n_io import load_yaml, MmapFileExchange, resolve_input_path
 
@@ -110,14 +110,15 @@ def run(
         if norm:
             mix, norm_params = normalize_audio(mix)
 
-        # Step 4.4) Run model inference and optional TTA.
-        waveforms_orig = demix(
+        # Perform source separation
+        waveforms_orig = bigshifts_wrapper(
             config,
             model,
             mix,
             device,
             model_type=args.model_type,
-            pbar=detailed_pbar
+            pbar=detailed_pbar,
+            bigshifts=args.bigshifts
         )
 
         # Apply test-time augmentation if enabled
@@ -128,7 +129,9 @@ def run(
                 mix,
                 waveforms_orig,
                 device,
-                args.model_type
+                args.model_type,
+                bigshifts=args.bigshifts,
+                pbar=detailed_pbar
             )
 
         # Step 4.5) Optionally derive instrumental from target stem.

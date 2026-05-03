@@ -5,6 +5,7 @@ import argparse
 import math
 import time
 import os
+import gc
 import glob
 import torch
 import librosa
@@ -858,9 +859,14 @@ def check_validation(dict_args):
         print('CUDA is not available. Run validation on CPU. It will be very slow...')
 
     if torch.cuda.is_available() and len(device_ids) > 1:
-        valid_multi_gpu(model, args, config, device_ids, verbose=False)
+        metrics = valid_multi_gpu(model, args, config, device_ids, verbose=False)
     else:
-        valid(model, args, config, device, verbose=True)
+        metrics = valid(model, args, config, device, verbose=True)
+
+    del model
+    torch.cuda.empty_cache()
+    gc.collect()
+    return metrics
 
 
 if __name__ == "__main__":
