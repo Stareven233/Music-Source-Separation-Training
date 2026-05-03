@@ -140,6 +140,17 @@ def run(
             ci_keys = {k.lower(): k for k in waveforms_orig.keys()}
             instr = ci_keys['vocals'] if 'vocals' in ci_keys else next(iter(ci_keys.keys()))
             waveforms_orig['instrumental'] = mix_orig - waveforms_orig[instr]
+        
+        # Step Optionally extract minus one from target stem.
+        if not args.extract_instrumental and args.minus_one:
+            waveforms_minus = dict()
+            instruments_minus = []
+            for instr in instruments:
+                new_instr = f'minus-{instr}'
+                instruments_minus.append(new_instr)
+                waveforms_minus[new_instr] = mix_orig - waveforms_orig[instr]
+            mmap_instr = f'minus-{mmap_instr}'
+            instruments, waveforms_orig = instruments_minus, waveforms_minus
 
         # Step 4.6) Emit each requested stem to filesystem/mmap.
         subtype = args.pcm_type
