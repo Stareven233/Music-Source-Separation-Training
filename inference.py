@@ -72,7 +72,11 @@ def run(
 
     # Step 2) Resolve runtime settings and output intent.
     sample_rate: int = getattr(config.audio, 'sample_rate', 44100)
-    instruments: list[str] = args.instrument or prefer_target_instrument(config)[:]
+    instruments: list[str] = args.instrument or []
+    # 允许 instrument 为空（不输出人声部分）仍然能抽取到伴奏
+    if args.extract_instrumental and 'instrumental' not in instruments:
+        instruments.append('instrumental')
+    instruments = instruments or prefer_target_instrument(config)[:]
     mmap_instr, mmap_path = _parse_instrument_output(args.temporary_output or '')
     # 两个都存在，启用mmap输出
     use_mmap_output = bool(mmap_instr) and bool(mmap_path)
@@ -129,10 +133,10 @@ def run(
 
         # Step 4.5) Optionally derive instrumental from target stem.
         if args.extract_instrumental:
-            instr = 'vocals' if 'vocals' in instruments else instruments[0]
+            # 若多个大小写不同，只保留最后遍历到的那个key，大概没问题
+            ci_keys = {k.lower(): k for k in waveforms_orig.keys()}
+            instr = ci_keys['vocals'] if 'vocals' in ci_keys else next(iter(ci_keys.keys()))
             waveforms_orig['instrumental'] = mix_orig - waveforms_orig[instr]
-            if 'instrumental' not in instruments:
-                instruments.append('instrumental')
 
         # Step 4.6) Emit each requested stem to filesystem/mmap.
         subtype = args.pcm_type

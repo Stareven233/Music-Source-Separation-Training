@@ -400,7 +400,7 @@ def main() -> None:
   if not args.preset_to_leaf_flow:
     return
     
-  target_path: Path = args.leaf_dir / 'bud/sprig/MSST-webui.local.flow.yaml'
+  target_path: Path = args.leaf_dir / 'bud/sprig/MSST-webui.flow.yaml'
   print(target_path.resolve().absolute())
   _convert_preset_to_flow(webui_dir, all_injected_models, target_path)
 
