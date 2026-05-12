@@ -70,4 +70,4 @@ inference:
   num_overlap: 4
 _model_info:
   model_type: mel_band_roformer
-  model_checkpoint: ..\..\..\..\..\..\Software\MSST WebUI\pretrain\single_stem_models\denoise_mel_band_roformer_aufr33_sdr_27.9959.ckpt
+  model_checkpoint: ..\..\..\pretrain\single_stem_models\denoise_mel_band_roformer_aufr33_sdr_27.9959.ckpt

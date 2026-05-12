@@ -77,4 +77,4 @@ training:
   use_amp: true
 _model_info:
   model_type: bandit
-  model_checkpoint: ..\..\..\..\..\..\Software\MSST WebUI\pretrain\multi_stem_models\model_bandit_plus_dnr_sdr_11.47.chpt
+  model_checkpoint: ..\..\..\pretrain\multi_stem_models\model_bandit_plus_dnr_sdr_11.47.chpt

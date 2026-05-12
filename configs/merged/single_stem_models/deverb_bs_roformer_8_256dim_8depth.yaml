@@ -134,4 +134,4 @@ training:
   use_amp: true
 _model_info:
   model_type: bs_roformer
-  model_checkpoint: ..\..\..\..\..\..\Software\MSST WebUI\pretrain\single_stem_models\deverb_bs_roformer_8_256dim_8depth.ckpt
+  model_checkpoint: ..\..\..\pretrain\single_stem_models\deverb_bs_roformer_8_256dim_8depth.ckpt
