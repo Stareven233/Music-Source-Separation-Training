@@ -366,7 +366,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument('--msst-webui-dir', required=True, type=Path)  # D:\Software\MSST WebUI
   parser.add_argument('--official-model', action='store_true', help='解析并迁移 msst webui 自带模型（默认安装的）')
   parser.add_argument('--unofficial-model', action='store_true', help='解析并迁移 msst webui 里第三方模型（自行安装的）')
-  parser.add_argument('--preset-to-leaf-flow', action='store_true', help='将 msst webui 的预设（preset）迁移到 leaf ，生成 flow 配置 "MSST-webui.local.flow.yaml"')
+  parser.add_argument('--preset-to-leaf-flow', action='store_true', help='将 msst webui 的预设（preset）迁移到 leaf ，生成 flow 配置 "MSST-webui.flow.yaml"')
   parser.add_argument('--leaf-dir', type=Path, default='./bud', help='leaf安装/解压目录')
   return parser.parse_args()
 

@@ -166,7 +166,10 @@ def run(
             output_path: Path | None = None
             # Step 4.6.3) Choose output codec by peak and PCM type.
             peak: float = float(np.abs(estimates).max())
-            codec = 'flac' if peak <= 1.0 and subtype != 'FLOAT' else 'wav'
+            if subtype in ('PCM_16', 'PCM_24'):
+                codec = 'flac'
+            else:
+                codec = 'flac' if peak <= 1.0 else 'wav'
 
             if bool(args.filename_template):
                 # Step 4.6.4-B) Normal output path generation from template.

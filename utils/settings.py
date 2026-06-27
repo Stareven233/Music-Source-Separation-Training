@@ -230,8 +230,9 @@ def parse_args_inference(dict_args: Union[Dict, None]) -> argparse.Namespace:
 
 
 def validate_sndfile_subtype(args):
-  codec = 'flac' if getattr(args, 'flac_file', False) else 'wav'
   subtype = args.pcm_type
+  # PCM_16/PCM_24 → flac; FLOAT → wav (FLAC doesn't support FLOAT)
+  codec = 'flac' if subtype in ('PCM_16', 'PCM_24') else 'wav'
   if subtype in sf.available_subtypes(codec):
     return subtype
   default = sf.default_subtype(codec)
